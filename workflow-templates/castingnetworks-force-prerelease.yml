@@ -47,7 +47,7 @@ jobs:
         with:
           app_id: ${{ secrets.DIRECTORBOT_APP_ID }}
           private_key: ${{ secrets.DIRECTORBOT_APP_PEM }}
-          installation_id: '29927194' # DO NOT CHANGE
+          installation_id: ${{ secrets.DIRECTORBOT_INSTALLATION_ID }}
 
       - name: Force prerelease
         uses: actions/github-script@v5

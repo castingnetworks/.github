@@ -28,13 +28,18 @@
 #      the suffix in both instances.
 # 
 # To use this workflow in a repository, the following steps should be followed:
+# 1. Add the following variables to the repository settings in GitHub:
+#   - NODE_VERSION: The version of node to use for the build
+#   - BUCKET_KEY: This is the key where the lambda artifacts will be stored in the hard coded bucket (e.g. b21/core-api)
+#   - RELEASE_TAG_PREFIX: This is the prefix that will be used for the release tag matching (e.g. release-v)
+#   - TERRAFORM_USE_OCI: Set to true if the service is using the OCI registry for the Terraform folder, otherwise set to false
+#   - TERRAFORM_IMAGE_NAME: The name of the image to use for the Terraform build if the above is set to true
 # 1. Ensure the required secrets are set in the repository:
-#   - NPM_AUTH_TOKEN
+#   - NPM_AUTH_TOKEN (Set at the organization level)
 #   - NPM_PUBLISH_TOKEN (Required if the project contains libraries that are published as a package)
 #   - SONAR_TOKEN (Optional)
 # 2. Replace the REPLACE_ placeholders in the file with the appropriate values for the service
 #   - REPLACE_SERVICENAME: This should be replaced with the name of the service (e.g. Core API)
-#   - REPLACE_KEY: This should be replaced with the name of the bucket key for the service (e.g. b21/core-api)
 # 3. Review the env: section and update the variables as needed
 # 
 # Please note AWS Authentication is handled by OIDC and there should be no need to add AWS credentials to the repository secrets.
@@ -53,29 +58,18 @@ permissions:
   pull-requests: write
   id-token: write
 
-env:
-  NODE_VERSION: "18"              # The version of node to use for the build
-  BUCKET_KEY: b21/REPLACE_KEY     # This is the key where the lambda artifacts will be stored in the hard coded bucket
-  RELEASE_TAG_PREFIX: "release-v" # Will match on this prefix for release tags and only run the workflow when a match is found
-  SKIP_TESTS: true                # Tests are skipped by default during a release
-  RUNS_ON: ubuntu-latest          # Can be used to change the runner that the build runs on (change this to use hosted runners)
-  DEBUG: false                    # Will output extra information to debug the build
-  # Before enabling this the ECR Repo needs to exist, please note the pf-iac repo needs to be configured for the service to use OCI
-  TERRAFORM_USE_OCI: false
-  TERRAFORM_IMAGE_NAME: ""
-
 jobs:
   call:
     uses: castingnetworks/devops-actions/.github/workflows/castingnetworks-service-build-and-deploy.yaml@v1
     with:
       # DO NOT CHANGE is-release to false, this is a release workflow
       is-release: true
-      node-version: ${{ env.NODE_VERSION }}
-      bucket-key: ${{ env.BUCKET_KEY }}
-      release-tag-prefix: ${{ env.RELEASE_TAG_PREFIX }}
-      build-terraform-oci: ${{ env.TERRAFORM_USE_OCI }}
-      terraform-image-name: ${{ env.TERRAFORM_IMAGE_NAME }}
-      runs-on: ${{ env.RUNS_ON }}
-      skip-tests: ${{ env.SKIP_TESTS }}
-      debug: ${{ env.DEBUG }}
+      node-version: ${{ vars.NODE_VERSION }}
+      bucket-key: ${{ vars.BUCKET_KEY }}
+      release-tag-prefix: ${{ vars.RELEASE_TAG_PREFIX }}
+      build-terraform-oci: ${{ (vars.TERRAFORM_USE_OCI == 'true') }}
+      terraform-image-name: ${{ vars.TERRAFORM_IMAGE_NAME }}
+      runs-on: ubuntu-latest
+      skip-tests: true
+      debug: false
     secrets: inherit

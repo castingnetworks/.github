@@ -18,11 +18,10 @@
 # 4. Calls the castingnetworks-update-service-image-in-iac action to update the image.yaml in the pf-iac repository
 # 
 # To use this workflow in a repository, the following steps should be followed:
-# 1. Review the env: section and update the variables as needed
-#  - SERVICE_NAME: This should be replaced with the name of the service (e.g. Core API)
-#  - SERVICE_KEY: This should be replaced with key for the service in the image yaml in the pf-iac repo (e.g. core-api) (see https://github.com/castingnetworks/pf-iac/blob/main/akuity/config/prd-eks-next/helm_values/images.yaml)
-#  - IS_OCI: This should be set to true if the service is using the OCI registry for the Terraform folder. Will be set in the other workflows.
-# 
+# 1. Add the following variables to the repository settings in GitHub:
+#   - SERVICE_NAME: This should be the name of the service (e.g. Core API)
+#   - IAC_KEY: This should be the key for the service in the image yaml in the pf-iac repo (e.g. core-api) (see
+#
 # There should be no need to change anything else in this file unless by the direction of the Devops team.
 # 
 # Release Process Overview:
@@ -70,11 +69,6 @@ name: Casting Networks - Rollback - Promote Latest Release
 on:
   release:
     types: [deleted]
-
-env:
-  SERVICE_NAME: "REPLACE_SERVICENAME"
-  SERVICE_KEY: "REPLACE_KEY"
-  IS_OCI: false
 
 jobs:
   prepare:
@@ -127,7 +121,7 @@ jobs:
           repoOwner: castingnetworks                              # DO NOT CHANGE
           repoName: pf-iac                                        # DO NOT CHANGE  
           repoBranch: main                                        # DO NOT CHANGE
-          serviceName: ${{ env.SERVICE_NAME }}
-          serviceKey: ${{ env.SERVICE_KEY }}
+          serviceName: ${{ vars.SERVICE_NAME }}
+          serviceKey: ${{ vars.IAC_KEY }}
           imageTag: ${{ fromJson(needs.prepare.outputs.latest_release.outputs.latest_release).tag_name }}
-          isOCI: ${{ env.IS_OCI }}
+          isOCI: ${{ (vars.TERRAFORM_USE_OCI == 'true') }}
