@@ -1,0 +1,133 @@
+# This workflow is 1 of 4 workflows that should be added as a package when used in a repository.
+# The 4 workflows and the order they should be applied in are:
+# 
+# * = You are here
+# 
+# 1. castingnetworks-build.yml
+# 2. castingnetworks-force-prerelease.yml
+# 3. *castingnetworks-delete-release.yml
+# 4. castingnetworks-release.yml
+# 
+# 
+# This workflow is part of the standard Release Process and is used to perform a Rollback in the event that there is a problem with a release that was promoted to production.
+# 
+# Workflow:
+# 1. Authenticates as the DirectorBot GitHub App
+# 2. Authenticates with the installation
+# 3. Finds the latest release for the current repository
+# 4. Calls the castingnetworks-update-service-image-in-iac action to update the image.yaml in the pf-iac repository
+# 
+# To use this workflow in a repository, the following steps should be followed:
+# 1. Review the env: section and update the variables as needed
+#  - SERVICE_NAME: This should be replaced with the name of the service (e.g. Core API)
+#  - SERVICE_KEY: This should be replaced with key for the service in the image yaml in the pf-iac repo (e.g. core-api) (see https://github.com/castingnetworks/pf-iac/blob/main/akuity/config/prd-eks-next/helm_values/images.yaml)
+#  - IS_OCI: This should be set to true if the service is using the OCI registry for the Terraform folder. Will be set in the other workflows.
+# 
+# There should be no need to change anything else in this file unless by the direction of the Devops team.
+# 
+# Release Process Overview:
+# 
+# +----------------------------------------------------------------------------------------+
+# | developer creates release in github                                                    |
+# +----------------------------------------------------------------------------------------+
+# | force prerelease runs                                                                  |
+# +----------------------------------------------------------------------------------------+
+# | release triggers on prerelease create, builds libraries/artifacts and pushes           |
+# +----------------------------------------------------------------------------------------+
+# | staging image updater matches on /^release-v[^-]*-?.*-prerelease$/ and updates pf-iac  |
+# | repo                                                                                   |
+# +----------------------------------------------------------------------------------------+
+# | argocd see changes and auto-syncs                                                      |
+# +----------------------------------------------------------------------------------------+
+# | releaser approves the release in github to promote to production                       |
+# +----------------------------------------------------------------------------------------+
+# | s3 artifacts are copied and ecr images are re-tagged                                   |
+# +----------------------------------------------------------------------------------------+
+# | production image updater matches on /^release-v[^-]*-?.*$(?<!prerelease)/ and updates  |
+# | pf-iac repo                                                                            |
+# +----------------------------------------------------------------------------------------+
+# | argocd see changes and waits for a releaser to press sync                              |
+# +----------------------------------------------------------------------------------------+
+# |   ^    Oh no everything breaks.                                                        |
+# | /  \^                                                                                  |
+# |   /\ \                                                                                 |
+# +----------------------------------------------------------------------------------------+
+# | Releaser finds Latest Release in GitHub UI                                             |
+# +----------------------------------------------------------------------------------------+
+# | Releaser Deletes it                                                                    |
+# +----------------------------------------------------------------------------------------+
+# | ************************* This workflow fires *************************                |
+# +----------------------------------------------------------------------------------------+
+# | Find the new 'latest' Release                                                          |
+# +----------------------------------------------------------------------------------------+
+# | Update the image yaml in the pf-iac repo with the correct artifact tag                 |
+# +----------------------------------------------------------------------------------------+
+# 
+# Please reach out to the Devops team if you have any questions or need assistance with this workflow.
+# Authored by Jesse McPherson (@mcfearsome)
+name: Casting Networks - Rollback - Promote Latest Release
+
+on:
+  release:
+    types: [deleted]
+
+env:
+  SERVICE_NAME: "REPLACE_SERVICENAME"
+  SERVICE_KEY: "REPLACE_KEY"
+  IS_OCI: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      latest_release: ${{ steps.latest_release.outputs.result }}
+      token: ${{ steps.installation_auth.outputs.token }}
+    steps:
+      - name: Authenticate with GitHub App
+        id: app_auth
+        uses: tibdex/github-app-token@v1
+        with:
+          app_id: ${{ secrets.DIRECTORBOT_APP_ID }}
+          private_key: ${{ secrets.DIRECTORBOT_APP_PEM }}
+
+      - name: Authenticate with installation
+        id: installation_auth
+        uses: tibdex/github-app-token@v1
+        with:
+          app_id: ${{ secrets.DIRECTORBOT_APP_ID }}
+          private_key: ${{ secrets.DIRECTORBOT_APP_PEM }}
+          installation_id: ${{ secrets.DIRECTORBOT_INSTALLATION_ID }}
+
+      - name: Get latest release
+        id: latest_release
+        uses: actions/github-script@v5
+        with:
+          github-token: ${{ steps.installation_auth.outputs.token }}
+          script: |
+            const { owner, repo } = context.repo;
+            const releases = await github.rest.repos.listReleases({
+              owner,
+              repo,
+            });
+
+            const latestRelease = releases.data.find(release => !release.prerelease);
+            console.log(`Latest release is ${latestRelease.tag_name}`)
+            return latestRelease;
+
+  update_image:
+    needs: prepare
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Update image.yaml in pf-iac
+        uses: castingnetworks/devops-actions/castingnetworks-update-service-image-in-iac@v1
+        with:
+          GITHUB_TOKEN: ${{ needs.prepare.outputs.token }}
+          imagesYamlPath: ${{ secrets.PRD_IAC_IMAGES_YAML_PATH}}  # This is set at the organization level
+          repoOwner: castingnetworks                              # DO NOT CHANGE
+          repoName: pf-iac                                        # DO NOT CHANGE  
+          repoBranch: main                                        # DO NOT CHANGE
+          serviceName: ${{ env.SERVICE_NAME }}
+          serviceKey: ${{ env.SERVICE_KEY }}
+          imageTag: ${{ fromJson(needs.prepare.outputs.latest_release.outputs.latest_release).tag_name }}
+          isOCI: ${{ env.IS_OCI }}

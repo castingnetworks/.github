@@ -1,0 +1,84 @@
+# This workflow is 1 of 4 workflows that should be added as a package when used in a repository.
+# The 4 workflows and the order they should be applied in are:
+# 
+# * = You are here
+# 
+# 1. *castingnetworks-build.yml
+# 2. castingnetworks-force-prerelease.yml
+# 3. castingnetworks-delete-release.yml
+# 4. castingnetworks-release.yml
+# 
+# 
+# The workflows are designed to be used in nodejs projects that use nx for the build and have an optional terraform directory.
+# This workflow file covers the standard build and test and is the same template that is used for the release.
+# 
+# Workflow:
+# 1. Lint & Test
+# 2. Get Build Jobs
+# 3. Sonar Cloud Scan
+# 4. Integration Tests
+# 5. Calculate Release/Artifact Tag (value is used for s3 and ecr artifacts)
+# 6. Build Libs - Matrix job that builds all the libraries in the project
+# 7. Build Lambdas - Matrix job that builds all the lambdas in the project and uploads them to s3
+# 8. Deploy to Development - Builds and Pushes a Docker Image to ECR. Uses the 'development' environment in GitHub
+# 9. [NOT PART OF EXECUTION FROM THIS WORKFLOW] Deploy to Staging - Builds and Pushes a Docker Image to ECR.
+#      Uses the 'staging' environment in GitHub. 
+#      The staging job works by injecting a suffix into the artifact tag to differentiate it from the production environment.
+# 10. [NOT PART OF EXECUTION FROM THIS WORKFLOW] Deploy to Production - Copies S3 artifacts and retags the ECR image removing
+#      the suffix in both instances.
+# 
+# To use this workflow in a repository, the following steps should be followed:
+# 1. Update the branch pattern to limit the branches that should be built if possible
+# 2. Ensure the required secrets are set in the repository:
+#   - NPM_AUTH_TOKEN
+#   - NPM_PUBLISH_TOKEN (Required if the project contains libraries that are published as a package)
+#   - SONAR_TOKEN (Optional)
+# 3. Replace the REPLACE_ placeholders in the file with the appropriate values for the service
+#   - REPLACE_SERVICENAME: This should be replaced with the name of the service (e.g. Core API)
+#   - REPLACE_KEY: This should be replaced with the name of the bucket key for the service (e.g. b21/core-api)
+# 4. Review the env: section and update the variables as needed
+# 
+# Please note AWS Authentication is handled by OIDC and there should be no need to add AWS credentials to the repository secrets.
+# 
+# Please reach out to the Devops team if you have any questions or need assistance with this workflow.
+# Authored by Jesse McPherson (@mcfearsome)
+name: REPLACE_SERVICENAME Build & Test
+
+on:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '**'
+
+permissions:
+  contents: write
+  actions: read
+  pull-requests: write
+  id-token: write
+
+env:
+  NODE_VERSION: "18"            # The version of node to use for the build
+  BUCKET_KEY: b21/REPLACE_KEY   # This is the key where the lambda artifacts will be stored in the hard coded bucket
+  SKIP_TESTS: false             # Can be used with a conditional to skip tests
+  RUNS_ON: ubuntu-latest        # Can be used to change the runner that the build runs on (change this to use hosted runners)
+  DEBUG: false                  # Will output extra information to debug the build
+  # Before enabling this the ECR Repo needs to exist, please note the pf-iac repo needs to be configured for the service to use OCI
+  TERRAFORM_USE_OCI: false
+  TERRAFORM_IMAGE_NAME: ""
+
+jobs:
+  call:
+    uses: castingnetworks/devops-actions/.github/workflows/castingnetworks-service-build-and-deploy.yaml@v1
+    with:
+      # DO NOT CHANGE is-release to true, this is a build workflow
+      is-release: false
+      node-version: ${{ env.NODE_VERSION }}
+      bucket-key: ${{ env.BUCKET_KEY }}
+      build-terraform-oci: ${{ env.TERRAFORM_USE_OCI }}
+      terraform-image-name: ${{ env.TERRAFORM_IMAGE_NAME }}
+      branch-prefix: ${{ env.BRANCH_PREFIX }}
+      runs-on: ${{ env.RUNS_ON }}
+      skip-tests: ${{ env.SKIP_TESTS }}
+      debug: ${{ env.DEBUG }}
+    secrets: inherit

@@ -1,0 +1,68 @@
+# This workflow is 1 of 4 workflows that should be added as a package when used in a repository.
+# The 4 workflows and the order they should be applied in are:
+# 
+# * = You are here
+# 
+# 1. castingnetworks-build.yml
+# 2. *castingnetworks-force-prerelease.yml
+# 3. castingnetworks-delete-release.yml
+# 4. castingnetworks-release.yml
+# 
+# 
+# This workflow is part of the standard Release Process and is used to ensure all newly created releases are marked as a prerelease.
+# 
+# This workflow enables us to trust the state of releases in GitHub and know that any release labeled as 'latest' is what is currently deployed to production.
+# The most recent release labeled 'prerelease' is what is currently deployed to staging.
+# The expectation is that a prerelease will be deployed to staging and needs to be promoted to production.
+# 
+# There is no configuration needed for this workflow and it should be added to the repository as is.
+# 
+# Please reach out to the Devops team if you have any questions or need assistance with this workflow.
+# Authored by Jesse McPherson (@mcfearsome)
+name: Force Prerelease
+
+on:
+  release:
+    types: [created]
+  repository_dispatch:
+
+jobs:
+  prerelease:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate with GitHub App
+        id: app_auth
+        uses: tibdex/github-app-token@v1
+        with:
+          # These secrets are set at the organization level and are used to authenticate with the GitHub App
+          app_id: ${{ secrets.DIRECTORBOT_APP_ID }}
+          private_key: ${{ secrets.DIRECTORBOT_APP_PEM }}
+
+      - name: Authenticate with installation
+        id: installation_auth
+        uses: tibdex/github-app-token@v1
+        with:
+          app_id: ${{ secrets.DIRECTORBOT_APP_ID }}
+          private_key: ${{ secrets.DIRECTORBOT_APP_PEM }}
+          installation_id: '29927194' # DO NOT CHANGE
+
+      - name: Force prerelease
+        uses: actions/github-script@v5
+        with:
+          github-token: ${{ steps.installation_auth.outputs.token }}
+          script: |
+            const { owner, repo, number } = context.issue;
+            const release = await github.rest.repos.getReleaseByTag({
+              owner,
+              repo,
+                tag: context.payload.release?.tag_name || "${{ github.event.client_payload.tag_name }}",
+            });
+            await github.rest.repos.updateRelease({
+              owner,
+              repo,
+              release_id: release.data.id,
+              prerelease: true,
+            });

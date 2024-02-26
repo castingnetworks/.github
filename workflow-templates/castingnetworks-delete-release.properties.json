@@ -1,0 +1,11 @@
+{
+  "name": "Casting Networks Rollback - Promote Latest Release",
+  "description": "Rollback workflow that is part of the Casting Networks Release process. This workflow is used to enable Rollbacks",
+  "iconName": "octicon x-circle-fill-24",
+  "categories": [
+    "continuous-integration",
+    "castingnetworks-services",
+    "castingnetworks-release"
+  ],
+  "filePatterns": ["package.json$"]
+}
