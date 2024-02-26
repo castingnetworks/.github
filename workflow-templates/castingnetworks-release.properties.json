@@ -1,7 +1,7 @@
 {
   "name": "Casting Networks Standard Release",
   "description": "Standard Release workflow for Casting Networks Services using Nx. Please see notes in the workflow.",
-  "iconName": "octicon rocket-24",
+  "iconName": "octicon rocket",
   "categories": [
     "continuous-integration",
     "testing",

@@ -1,7 +1,7 @@
 {
   "name": "Casting Networks Force Prerelease",
   "description": "Utility workflow for the Casting Networks release process. Please see notes in the workflow.",
-  "iconName": "octicon squirrel-24",
+  "iconName": "octicon squirrel",
   "categories": [
     "continuous-integration",
     "castingnetworks-services",

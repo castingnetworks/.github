@@ -1,7 +1,7 @@
 {
   "name": "Casting Networks Standard Build & Test",
   "description": "Standard Build workflow for Casting Networks Services using Nx. Please see notes in the workflow.",
-  "iconName": "octicon hubot-24",
+  "iconName": "octicon hubot",
   "categories": [
     "continuous-integration",
     "testing",
