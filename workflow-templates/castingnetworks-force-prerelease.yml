@@ -8,6 +8,15 @@
 # 3. castingnetworks-delete-release.yml
 # 4. castingnetworks-release.yml
 # 
+# Before adding these workflows please configure the calling repository with the following variables in the repository settings:
+# - NODE_VERSION: The version of node to use for the build (e.g. 18)
+# - SERVICE_NAME: The name of the service (e.g. Core API)
+# - BUCKET_KEY: This is the key where the lambda artifacts will be stored in the hard coded bucket (e.g. b21/core-api)
+# - IAC_KEY: This should be the key for the service in the image yaml in the pf-iac repo (e.g. core-api) (see castingnetworks-delete-release.yml)
+# - RELEASE_TAG_PREFIX: This is the prefix that will be used for the release tag matching (e.g. release-v)
+# - TERRAFORM_USE_OCI: Set to true if the service is using the OCI registry for the Terraform folder, otherwise set to false
+# - TERRAFORM_IMAGE_NAME: The name of the image to use for the Terraform build if the above is set to true, otherwise create the variable but leave it blank
+# 
 # 
 # This workflow is part of the standard Release Process and is used to ensure all newly created releases are marked as a prerelease.
 # 

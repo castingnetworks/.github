@@ -8,7 +8,16 @@
 # 3. castingnetworks-delete-release.yml
 # 4. castingnetworks-release.yml
 # 
+# Before adding these workflows please configure the calling repository with the following variables in the repository settings:
+# - NODE_VERSION: The version of node to use for the build (e.g. 18)
+# - SERVICE_NAME: The name of the service (e.g. Core API)
+# - BUCKET_KEY: This is the key where the lambda artifacts will be stored in the hard coded bucket (e.g. b21/core-api)
+# - IAC_KEY: This should be the key for the service in the image yaml in the pf-iac repo (e.g. core-api) (see castingnetworks-delete-release.yml)
+# - RELEASE_TAG_PREFIX: This is the prefix that will be used for the release tag matching (e.g. release-v)
+# - TERRAFORM_USE_OCI: Set to true if the service is using the OCI registry for the Terraform folder, otherwise set to false
+# - TERRAFORM_IMAGE_NAME: The name of the image to use for the Terraform build if the above is set to true, otherwise create the variable but leave it blank
 # 
+#
 # The workflows are designed to be used in nodejs projects that use nx for the build and have an optional terraform directory.
 # This workflow file covers the standard build and test and is the same template that is used for the release.
 # 
@@ -29,11 +38,6 @@
 # 
 # To use this workflow in a repository, the following steps should be followed:
 # 1. Update the branch pattern to limit the branches that should be built if possible
-# 2. Add the following variables to the repository settings in GitHub:
-#   - NODE_VERSION: The version of node to use for the build
-#   - BUCKET_KEY: This is the key where the lambda artifacts will be stored in the hard coded bucket (e.g. b21/core-api)
-#   - TERRAFORM_USE_OCI: Set to true if the service is using the OCI registry for the Terraform folder, otherwise set to false
-#   - TERRAFORM_IMAGE_NAME: The name of the image to use for the Terraform build if the above is set to true
 # 2. Ensure the required secrets are set in the repository:
 #   - NPM_AUTH_TOKEN (Set at the organization level)
 #   - NPM_PUBLISH_TOKEN (Required if the project contains libraries that are published as a package)
@@ -66,10 +70,10 @@ jobs:
     with:
       # DO NOT CHANGE is-release to true, this is a build workflow
       is-release: false
-      node-version: ${{ var.NODE_VERSION }}
-      bucket-key: ${{ var.BUCKET_KEY }}
-      build-terraform-oci: ${{ (var.TERRAFORM_USE_OCI == 'true') }}
-      terraform-image-name: ${{ var.TERRAFORM_IMAGE_NAME }}
+      node-version: ${{ vars.NODE_VERSION }}
+      bucket-key: ${{ vars.BUCKET_KEY }}
+      build-terraform-oci: ${{ (vars.TERRAFORM_USE_OCI == 'true') }}
+      terraform-image-name: ${{ vars.TERRAFORM_IMAGE_NAME }}
       runs-on: ubuntu-latest
       skip-tests: false
       debug: false

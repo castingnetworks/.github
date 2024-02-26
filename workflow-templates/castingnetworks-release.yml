@@ -8,6 +8,15 @@
 # 3. castingnetworks-delete-release.yml
 # 4. *castingnetworks-release.yml
 # 
+# Before adding these workflows please configure the calling repository with the following variables in the repository settings:
+# - NODE_VERSION: The version of node to use for the build (e.g. 18)
+# - SERVICE_NAME: The name of the service (e.g. Core API)
+# - BUCKET_KEY: This is the key where the lambda artifacts will be stored in the hard coded bucket (e.g. b21/core-api)
+# - IAC_KEY: This should be the key for the service in the image yaml in the pf-iac repo (e.g. core-api) (see castingnetworks-delete-release.yml)
+# - RELEASE_TAG_PREFIX: This is the prefix that will be used for the release tag matching (e.g. release-v)
+# - TERRAFORM_USE_OCI: Set to true if the service is using the OCI registry for the Terraform folder, otherwise set to false
+# - TERRAFORM_IMAGE_NAME: The name of the image to use for the Terraform build if the above is set to true, otherwise create the variable but leave it blank
+# 
 # 
 # The workflows are designed to be used in nodejs projects that use nx for the build and have an optional terraform directory.
 # This workflow file covers the standard release and is the same template that is used for the build.
@@ -28,19 +37,12 @@
 #      the suffix in both instances.
 # 
 # To use this workflow in a repository, the following steps should be followed:
-# 1. Add the following variables to the repository settings in GitHub:
-#   - NODE_VERSION: The version of node to use for the build
-#   - BUCKET_KEY: This is the key where the lambda artifacts will be stored in the hard coded bucket (e.g. b21/core-api)
-#   - RELEASE_TAG_PREFIX: This is the prefix that will be used for the release tag matching (e.g. release-v)
-#   - TERRAFORM_USE_OCI: Set to true if the service is using the OCI registry for the Terraform folder, otherwise set to false
-#   - TERRAFORM_IMAGE_NAME: The name of the image to use for the Terraform build if the above is set to true
 # 1. Ensure the required secrets are set in the repository:
 #   - NPM_AUTH_TOKEN (Set at the organization level)
 #   - NPM_PUBLISH_TOKEN (Required if the project contains libraries that are published as a package)
 #   - SONAR_TOKEN (Optional)
 # 2. Replace the REPLACE_ placeholders in the file with the appropriate values for the service
 #   - REPLACE_SERVICENAME: This should be replaced with the name of the service (e.g. Core API)
-# 3. Review the env: section and update the variables as needed
 # 
 # Please note AWS Authentication is handled by OIDC and there should be no need to add AWS credentials to the repository secrets.
 # 
